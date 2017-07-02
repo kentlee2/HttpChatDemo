@@ -85,6 +85,7 @@ public abstract class BaseActivity extends AppCompatActivity implements View.OnC
         initData();
     }
     private void initView() {
+//        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         mList = (RecyclerView)findViewById(R.id.content_lv);
         root_rl = (RelativeLayout)findViewById(R.id.layout_root_rl);
         mEditTextContent = (EditText) findViewById(R.id.mess_et);
