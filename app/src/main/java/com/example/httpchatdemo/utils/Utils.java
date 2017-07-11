@@ -15,8 +15,12 @@ public class Utils {
     public static List<String> getExpressionRes(int getSum) {
         List<String> reslist = new ArrayList<String>();
         for (int x = 1; x <= getSum; x++) {
-            String filename = "ee_" + x;
-
+            String filename;
+            if(x<10){
+                 filename = "qq_0" + x;
+            }else{
+                 filename = "qq_" + x;
+            }
             reslist.add(filename);
 
         }

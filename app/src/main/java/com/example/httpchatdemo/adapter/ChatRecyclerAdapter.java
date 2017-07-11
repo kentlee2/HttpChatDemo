@@ -29,8 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class ChatRecyclerAdapter extends
-        RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class ChatRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private Context context;
     private List<ChatMessageBean> userList = new ArrayList<ChatMessageBean>();
     private ArrayList<String> imageList = new ArrayList<String>();

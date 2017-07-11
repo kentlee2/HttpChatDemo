@@ -2,12 +2,15 @@ package com.example.httpchatdemo;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.v4.content.FileProvider;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -41,8 +44,11 @@ import com.tbruyelle.rxpermissions.RxPermissions;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import rx.functions.Action1;
 
@@ -66,6 +72,8 @@ public abstract class BaseActivity extends AppCompatActivity implements View.OnC
     public List<ChatMessageBean> tblist = new ArrayList<ChatMessageBean>();
     public ChatRecyclerAdapter tbAdapter;
     private static final int IMAGE_SIZE = 100 * 1024;// 300kb
+    private String mCurrentPhotoPath;
+
     /**
      * 发送文本消息
      */
@@ -126,12 +134,10 @@ public abstract class BaseActivity extends AppCompatActivity implements View.OnC
 //        lm.setStackFromEnd(true);
         mList.setLayoutManager(lm);
         mList.setAdapter(tbAdapter);
-
     }
-
     private void setEmojiExpression() {
         // 表情list
-        reslist = Utils.getExpressionRes(35);
+        reslist = Utils.getExpressionRes(40);
         // 初始化表情viewpager
         List<View> views = new ArrayList<View>();
         View gv1 = getGridChildView(1);
@@ -169,17 +175,30 @@ public abstract class BaseActivity extends AppCompatActivity implements View.OnC
                             public void call(Boolean granted) {
                                 if (granted) { // 在android 6.0之前会默认返回true
                                     // 已经获取权限
-                                    final String state = Environment.getExternalStorageState();
-                                    if (Environment.MEDIA_MOUNTED.equals(state)) {
-                                        camPicPath = getSavePicPath();
-                                        Intent openCameraIntent = new Intent(
-                                                MediaStore.ACTION_IMAGE_CAPTURE);
-                                        Uri uri = Uri.fromFile(new File(camPicPath));
-                                        openCameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
-                                        startActivityForResult(openCameraIntent,
-                                                ChatBottomView.FROM_CAMERA);
-                                    } else {
-                                        ToastUtils.showToast("请检查内存卡");
+                                    // 已经获取权限
+                                    Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                                    if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+
+                                        String filename = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.CHINA)
+                                                .format(new Date()) + ".png";
+                                        File file = new File(Environment.getExternalStorageDirectory(), filename);
+                                        mCurrentPhotoPath = file.getAbsolutePath();
+                                        Uri fileUri = null;
+                                        if (Build.VERSION.SDK_INT >= 24) {
+                                            fileUri = FileProvider.getUriForFile(BaseActivity.this, "com.example.fileprovider", file);
+                                        } else {
+                                            fileUri = Uri.fromFile(file);
+                                        }
+                                        List<ResolveInfo> resInfoList = getPackageManager()
+                                                .queryIntentActivities(takePictureIntent, PackageManager.MATCH_DEFAULT_ONLY);
+                                        for (ResolveInfo resolveInfo : resInfoList) {
+                                            String packageName = resolveInfo.activityInfo.packageName;
+                                            grantUriPermission(packageName, fileUri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                                        }
+
+                                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri);
+                                        startActivityForResult(takePictureIntent, ChatBottomView.FROM_CAMERA);
                                     }
                                 } else {
                                     // 未获取权限
@@ -296,13 +315,23 @@ public abstract class BaseActivity extends AppCompatActivity implements View.OnC
             mess_iv.setBackgroundResource(R.mipmap.tb_more);
             switch (requestCode) {
                 case ChatBottomView.FROM_CAMERA:
-
+                    File mCurrentPhotoFile = new File(mCurrentPhotoPath); // 图片文件路径
+                    if (mCurrentPhotoFile.exists()) {
+                        int size = ImageCheckoutUtil.getImageSize(ImageCheckoutUtil.getLoacalBitmap(mCurrentPhotoPath));
+                        if (size > IMAGE_SIZE) { //图片大于1m进行压缩后上传
+                            showDialog(mCurrentPhotoPath);
+                        } else {
+                            sendImage(mCurrentPhotoPath);
+                        }
+                    } else {
+                        ToastUtils.showToast("该文件不存在!");
+                    }
                     break;
                 case ChatBottomView.FROM_GALLERY:
                     Uri uri = data.getData();
                     String path = FileSaveUtil.getPath(getApplicationContext(), uri);
-                    File mCurrentPhotoFile = new File(path); // 图片文件路径
-                    if (mCurrentPhotoFile.exists()) {
+                    File mCurrentPhotoFile2 = new File(path); // 图片文件路径
+                    if (mCurrentPhotoFile2.exists()) {
                         int size = ImageCheckoutUtil.getImageSize(ImageCheckoutUtil.getLoacalBitmap(path));
                         if (size > IMAGE_SIZE) {
                             showDialog(path);

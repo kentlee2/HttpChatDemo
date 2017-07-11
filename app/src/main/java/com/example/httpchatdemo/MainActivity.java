@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private void getContactList() {
         for(int i=0;i<8;i++){
             Map map = new HashMap();
+            map.put("id",i+"");
             map.put("title","我是标题"+i);
             map.put("head",R.mipmap.test_icon);
             map.put("content","我是内容"+i);
@@ -45,7 +46,10 @@ public class MainActivity extends AppCompatActivity {
         contactAdapter.setOnItemClickLitener(new ContactAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(View view, int position) {
-               startActivity(new Intent(MainActivity.this,ChatActivity.class));
+                Intent intent = new Intent(MainActivity.this,ChatActivity.class);
+                Map map  =contactList.get(position);
+                intent.putExtra("id", map.get("id").toString());
+               startActivity(intent);
             }
         });
     }
